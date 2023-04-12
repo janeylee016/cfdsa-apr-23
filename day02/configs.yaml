@@ -1,0 +1,26 @@
+---
+# look at configmap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dov-cm
+  #namespace: dov-ns
+  labels:
+    app: dov
+    name: dov-cm
+data:
+  app_name: "My Dov Bear"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dov-secret
+  #namespace: dov-ns
+  labels:
+    app: dov
+    name: dov-secret
+type: Opaque
+data:
+  app_instance: dGhpcyBpcyBteSBzZWNyZXRc
+# for real application, don't use this, easy to decode back. In real production use other ways.

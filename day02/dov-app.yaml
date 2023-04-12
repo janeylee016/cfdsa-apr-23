@@ -1,0 +1,73 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dov-deploy
+  # namespace: dov-ns
+  labels:
+    app: dov
+    name: dov-deploy
+spec:
+  # number of instance
+  replicas: 3
+  # select pods belonging to this deployment
+  selector:
+    matchLabels:
+      app: dov
+      name: dov-po
+  # pod template
+  template:
+    metadata:
+      name: dov-po
+      labels:
+        app: dov
+        name: dov-po
+    spec:
+      containers:
+        - name: dov-container
+          image: stackupiss/dov-bear:v1
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: INSTANCE_NAME
+              #value: "stackup dov-bear"
+              valueFrom:
+                configMapKeyRef:
+                  name: dov-cm
+                  key: app_name
+
+            - name: INSTANCE_HASH
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+                # secretKeyRef:
+                #   name: dov-secret
+                #   key: app_instance
+                # fieldRef:
+                #   fieldPath: status.podIP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+          ports:
+            - containerPort: 3000
+# no need namespace bcos the deployment will deploy into the same ns
+# one common label for the entire app
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dov-svc
+  labels:
+    app: dov
+    name: dov-svc
+spec:
+  # type: ClusterIP
+  #type: NodePort
+  type: LoadBalancer
+  selector:
+    app: dov
+    name: dov-po
+  ports:
+    - port: 80
+      targetPort: 3000

@@ -1,0 +1,15 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bggapp-deploy
+  namespace: bggns
+  labels:
+    app: bggapp
+spec:
+  containers:
+    - name: bggdb
+      image: stackupiss/bgg-database:v1
+      imagePullPolicy: IfNotPresent
+      ports:
+        - containerPort: 3000
