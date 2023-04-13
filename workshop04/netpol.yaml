@@ -1,0 +1,30 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: minio-netall
+  namespace: minio-ns
+  labels:
+    app: minio
+    name: minio-netall
+spec:
+  policyTypes:
+    - Ingress
+  podSelector:
+    matchLabels:
+      app: minio
+      name: minio-po
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+            app.kubernetes.io/component: controller
+            app.kubernetes.io/instance: cfdsa-ingress
+            app.kubernetes.io/name: ingress-nginx
+        - namespaceSelector:
+            matchLabels:
+            kubernetes.io/metadata.name: ingress-nginx
+            name: ingress-nginx
+      ports:
+        - port: 9000
+        - port: 9090

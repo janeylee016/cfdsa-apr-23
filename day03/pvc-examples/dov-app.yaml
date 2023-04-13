@@ -1,0 +1,123 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dov-ns
+  labels:
+    app: dov
+    name: dov-ns
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dov-deploy
+  namespace: dov-ns
+  labels:
+    app: dov
+    name: dov-deploy
+spec:
+  # number of instance
+  replicas: 3
+  # select pods belonging to this deployment
+  selector:
+    matchLabels:
+      app: dov
+      name: dov-po
+  # pod template
+  template:
+    metadata:
+      name: dov-po
+      labels:
+        app: dov
+        name: dov-po
+    spec:
+      containers:
+        - name: dov-container
+          image: stackupiss/dov-bear:v1
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: INSTANCE_NAME
+              #value: "stackup dov-bear"
+              value:
+                dov-bear
+                # configMapKeyRef:
+                #   name: dov-cm
+                #   key: app_name
+
+            - name: INSTANCE_HASH
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+                # secretKeyRef:
+                #   name: dov-secret
+                #   key: app_instance
+                # fieldRef:
+                #   fieldPath: status.podIP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+          ports:
+            - containerPort: 3000
+# no need namespace bcos the deployment will deploy into the same ns
+# one common label for the entire app
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dov-svc
+  namespace: dov-ns
+  labels:
+    app: dov
+    name: dov-svc
+spec:
+  type: ClusterIP
+  #type: NodePort
+  # type: LoadBalancer
+  selector:
+    app: dov
+    name: dov-po
+  ports:
+    - port: 8080
+      targetPort: 3000
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  #ing short name for ingress
+  name: dov-ing
+  namespace: dov-ns
+  labels:
+    app: dov
+    name: dov-ing
+  annotations:
+    nginx.ingress.kubernetes.io/enable_cors: "true"
+    nginx.ingress.kubernetes.io/limit-rps: "5"
+
+spec:
+  ingressClassName: nginx
+  rules:
+    # faking the domain name using nip.io, real need to go to cloudflare to get
+    - host: dov-139.59.223.83.nip.io
+      http:
+        paths:
+          # any path that come to the host then / and get prefix, route it to our backend
+          - path: /
+            pathType: Prefix
+            backend:
+              # route to service in own namespace not another namespace
+              service:
+                name: dov-svc
+                port:
+                  number: 8080
+          # - path: /catalogue
+          #   pathType: Prefix
+          #   backend:
+          #     # route to service in own namespace not another namespace
+          #     service:
+          #       name: dov-catelogue-svc
+          #       port:
+          #         number: 8080
